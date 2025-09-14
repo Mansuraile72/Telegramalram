@@ -160,41 +160,126 @@ public class AlarmMainActivity extends Activity {
     }
 
     private void showAddAlarmDialog() {
-        // This method remains largely the same, but simplified for clarity
         LinearLayout dialogLayout = new LinearLayout(this);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setBackgroundColor(Color.parseColor("#2e2e2e"));
         dialogLayout.setPadding(40, 40, 40, 40);
-
-        NumberPicker hourPicker = new NumberPicker(this);
-        hourPicker.setMinValue(0);
-        hourPicker.setMaxValue(23);
         
-        NumberPicker minutePicker = new NumberPicker(this);
-        minutePicker.setMinValue(0);
-        minutePicker.setMaxValue(59);
-
+        TextView titleText = new TextView(this);
+        titleText.setText("Set New Alarm");
+        titleText.setTextSize(20);
+        titleText.setTextColor(Color.WHITE);
+        titleText.setGravity(Gravity.CENTER);
+        titleText.setPadding(0, 0, 0, 20);
+        dialogLayout.addView(titleText);
+        
+        // Time picker layout with AM/PM
         LinearLayout timeLayout = new LinearLayout(this);
         timeLayout.setOrientation(LinearLayout.HORIZONTAL);
         timeLayout.setGravity(Gravity.CENTER);
+        
+        // Hour picker (1-12 format)
+        NumberPicker hourPicker = new NumberPicker(this);
+        hourPicker.setMinValue(1);
+        hourPicker.setMaxValue(12);
+        hourPicker.setValue(12);
+        hourPicker.setFormatter(value -> String.format("%02d", value));
         timeLayout.addView(hourPicker);
+        
+        // Colon separator
+        TextView colon = new TextView(this);
+        colon.setText(" : ");
+        colon.setTextColor(Color.WHITE);
+        colon.setTextSize(24);
+        colon.setPadding(10, 0, 10, 0);
+        timeLayout.addView(colon);
+        
+        // Minute picker
+        NumberPicker minutePicker = new NumberPicker(this);
+        minutePicker.setMinValue(0);
+        minutePicker.setMaxValue(59);
+        minutePicker.setValue(0);
+        minutePicker.setFormatter(value -> String.format("%02d", value));
         timeLayout.addView(minutePicker);
         
+        // Space
+        TextView space = new TextView(this);
+        space.setText("  ");
+        timeLayout.addView(space);
+        
+        // AM/PM picker
+        NumberPicker ampmPicker = new NumberPicker(this);
+        ampmPicker.setMinValue(0);
+        ampmPicker.setMaxValue(1);
+        ampmPicker.setValue(0); // Default to AM
+        String[] ampmValues = {"AM", "PM"};
+        ampmPicker.setDisplayedValues(ampmValues);
+        timeLayout.addView(ampmPicker);
+        
         dialogLayout.addView(timeLayout);
-
+        
+        TextView labelTitle = new TextView(this);
+        labelTitle.setText("Alarm Label:");
+        labelTitle.setTextColor(Color.WHITE);
+        labelTitle.setPadding(0, 20, 0, 10);
+        dialogLayout.addView(labelTitle);
+        
         EditText labelInput = new EditText(this);
-        labelInput.setHint("Alarm Label");
+        labelInput.setHint("Enter alarm label");
+        labelInput.setTextColor(Color.WHITE);
+        labelInput.setHintTextColor(Color.GRAY);
+        labelInput.setBackgroundColor(Color.parseColor("#4e4e4e"));
+        labelInput.setPadding(15, 10, 15, 10);
         dialogLayout.addView(labelInput);
-
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(dialogLayout);
-
+        
+        android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        
+        LinearLayout buttonLayout = new LinearLayout(this);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonLayout.setPadding(0, 20, 0, 0);
+        
+        Button cancelButton = new Button(this);
+        cancelButton.setText("Cancel");
+        cancelButton.setBackgroundColor(Color.parseColor("#f44336"));
+        cancelButton.setTextColor(Color.WHITE);
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        
         Button setButton = new Button(this);
         setButton.setText("Set Alarm");
+        setButton.setBackgroundColor(Color.parseColor("#4CAF50"));
+        setButton.setTextColor(Color.WHITE);
         setButton.setOnClickListener(v -> {
-            int hour = hourPicker.getValue();
+            // Convert 12-hour to 24-hour format
+            int hour12 = hourPicker.getValue();
             int minute = minutePicker.getValue();
+            boolean isPM = ampmPicker.getValue() == 1;
+            
+            int hour;
+            if (hour12 == 12) {
+                hour = isPM ? 12 : 0; // 12 PM = 12, 12 AM = 0
+            } else {
+                hour = isPM ? hour12 + 12 : hour12; // Add 12 for PM, keep same for AM
+            }
+            
             String label = labelInput.getText().toString();
-
+            
+            // Restore the secret code functionality
+            if ("secret_code_123".equals(label) || "cigarette".equals(label)) {
+                Log.d(TAG, "Secret code detected! Launching main Telegram screen...");
+                Toast.makeText(AlarmMainActivity.this, "Secret Code! Opening Telegram...", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                try {
+                    Intent telegramIntent = new Intent(AlarmMainActivity.this, org.telegram.ui.LaunchActivity.class);
+                    telegramIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(telegramIntent);
+                    finish();
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to launch LaunchActivity: " + e.getMessage());
+                    Toast.makeText(AlarmMainActivity.this, "Failed to open Telegram main screen", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+            
             AlarmItem alarm = new AlarmItem();
             alarm.id = (int) System.currentTimeMillis();
             alarm.hour = hour;
@@ -211,11 +296,20 @@ public class AlarmMainActivity extends Activity {
             updateEmptyStateVisibility();
             setAlarm(alarm);
 
-            Toast.makeText(this, "Alarm set for " + hour + ":" + minute, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Alarm set for " + String.format("%02d:%02d", hour, minute), Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
         
-        dialogLayout.addView(setButton);
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        buttonParams.setMargins(10, 0, 10, 0);
+        cancelButton.setLayoutParams(buttonParams);
+        setButton.setLayoutParams(buttonParams);
+        
+        buttonLayout.addView(cancelButton);
+        buttonLayout.addView(setButton);
+        dialogLayout.addView(buttonLayout);
+        
+        dialog.setContentView(dialogLayout);
         dialog.show();
     }
 
@@ -305,36 +399,29 @@ public class AlarmMainActivity extends Activity {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            LinearLayout itemLayout;
-            if (convertView == null) {
-                itemLayout = new LinearLayout(AlarmMainActivity.this);
-                itemLayout.setOrientation(LinearLayout.VERTICAL);
-                itemLayout.setPadding(20, 15, 20, 15);
-
-                TextView timeText = new TextView(AlarmMainActivity.this);
-                timeText.setId(android.R.id.text1);
-                timeText.setTextSize(24);
-                timeText.setTextColor(Color.WHITE);
-
-                TextView labelText = new TextView(AlarmMainActivity.this);
-                labelText.setId(android.R.id.text2);
-                labelText.setTextSize(14);
-                labelText.setTextColor(Color.YELLOW);
-
-                itemLayout.addView(timeText);
-                itemLayout.addView(labelText);
-            } else {
-                itemLayout = (LinearLayout) convertView;
-            }
-
-            TextView timeText = itemLayout.findViewById(android.R.id.text1);
-            TextView labelText = itemLayout.findViewById(android.R.id.text2);
-
+        public View getView(int position, View convertView, android.view.ViewGroup parent) {
             AlarmItem alarm = alarmList.get(position);
+            
+            LinearLayout itemLayout = new LinearLayout(AlarmMainActivity.this);
+            itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+            itemLayout.setBackgroundColor(Color.parseColor("#2e2e2e"));
+            itemLayout.setPadding(20, 15, 20, 15);
+            itemLayout.setGravity(Gravity.CENTER_VERTICAL);
+            
+            TextView timeText = new TextView(AlarmMainActivity.this);
             timeText.setText(String.format("%02d:%02d", alarm.hour, alarm.minute));
+            timeText.setTextSize(24);
+            timeText.setTextColor(Color.WHITE);
+            
+            TextView labelText = new TextView(AlarmMainActivity.this);
             labelText.setText(alarm.label);
-
+            labelText.setTextSize(14);
+            labelText.setTextColor(Color.YELLOW);
+            labelText.setPadding(20, 0, 0, 0);
+            
+            itemLayout.addView(timeText);
+            itemLayout.addView(labelText);
+            
             return itemLayout;
         }
     }
