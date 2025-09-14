@@ -124,8 +124,21 @@ public class AlarmMainActivity extends Activity {
                 }
 
                 // 3. Now that views are guaranteed to exist, set them up.
-                alarmListView.setAdapter(alarmAdapter);
-                Log.d(TAG, "setupUI: Adapter set on ListView.");
+                if (alarmListView != null) {
+                    alarmListView.setAdapter(alarmAdapter);
+                    Log.d(TAG, "ListView adapter set");
+
+                    // Add listeners for edit and delete
+                    alarmListView.setOnItemClickListener((parent, view, position, id) -> {
+                        AlarmItem alarm = alarmList.get(position);
+                        showEditAlarmDialog(alarm, position);
+                    });
+
+                    alarmListView.setOnItemLongClickListener((parent, view, position, id) -> {
+                        showDeleteConfirmationDialog(position);
+                        return true; // Consume the long click
+                    });
+                }
 
                 addButton.setOnClickListener(v -> {
                     Log.d(TAG, "Add alarm button clicked!");
@@ -160,13 +173,19 @@ public class AlarmMainActivity extends Activity {
     }
 
     private void showAddAlarmDialog() {
+        showEditAlarmDialog(null, -1); // Pass null to indicate a new alarm
+    }
+
+    private void showEditAlarmDialog(final AlarmItem existingAlarm, final int position) {
+        final boolean isEditMode = existingAlarm != null;
+
         LinearLayout dialogLayout = new LinearLayout(this);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
         dialogLayout.setBackgroundColor(Color.parseColor("#2e2e2e"));
         dialogLayout.setPadding(40, 40, 40, 40);
         
         TextView titleText = new TextView(this);
-        titleText.setText("Set New Alarm");
+        titleText.setText(isEditMode ? "Edit Alarm" : "Set New Alarm");
         titleText.setTextSize(20);
         titleText.setTextColor(Color.WHITE);
         titleText.setGravity(Gravity.CENTER);
@@ -182,47 +201,41 @@ public class AlarmMainActivity extends Activity {
         NumberPicker hourPicker = new NumberPicker(this);
         hourPicker.setMinValue(1);
         hourPicker.setMaxValue(12);
-        hourPicker.setValue(12);
-        hourPicker.setFormatter(value -> String.format("%02d", value));
-        timeLayout.addView(hourPicker);
-        
-        // Colon separator
-        TextView colon = new TextView(this);
-        colon.setText(" : ");
-        colon.setTextColor(Color.WHITE);
-        colon.setTextSize(24);
-        colon.setPadding(10, 0, 10, 0);
-        timeLayout.addView(colon);
         
         // Minute picker
         NumberPicker minutePicker = new NumberPicker(this);
         minutePicker.setMinValue(0);
         minutePicker.setMaxValue(59);
-        minutePicker.setValue(0);
-        minutePicker.setFormatter(value -> String.format("%02d", value));
-        timeLayout.addView(minutePicker);
-        
-        // Space
-        TextView space = new TextView(this);
-        space.setText("  ");
-        timeLayout.addView(space);
         
         // AM/PM picker
         NumberPicker ampmPicker = new NumberPicker(this);
         ampmPicker.setMinValue(0);
         ampmPicker.setMaxValue(1);
-        ampmPicker.setValue(0); // Default to AM
         String[] ampmValues = {"AM", "PM"};
         ampmPicker.setDisplayedValues(ampmValues);
+
+        if (isEditMode) {
+            int hour12 = existingAlarm.hour % 12;
+            if (hour12 == 0) hour12 = 12; // 0 and 12 o'clock are 12
+            hourPicker.setValue(hour12);
+            minutePicker.setValue(existingAlarm.minute);
+            ampmPicker.setValue(existingAlarm.hour >= 12 ? 1 : 0); // 0 for AM, 1 for PM
+        } else {
+            hourPicker.setValue(12);
+            minutePicker.setValue(0);
+            ampmPicker.setValue(0); // Default to AM
+        }
+
+        hourPicker.setFormatter(value -> String.format("%02d", value));
+        minutePicker.setFormatter(value -> String.format("%02d", value));
+
+        timeLayout.addView(hourPicker);
+        timeLayout.addView(new TextView(this) {{ setText(" : "); setTextColor(Color.WHITE); setTextSize(24); setPadding(10,0,10,0); }});
+        timeLayout.addView(minutePicker);
+        timeLayout.addView(new TextView(this) {{ setText("  "); }});
         timeLayout.addView(ampmPicker);
         
         dialogLayout.addView(timeLayout);
-        
-        TextView labelTitle = new TextView(this);
-        labelTitle.setText("Alarm Label:");
-        labelTitle.setTextColor(Color.WHITE);
-        labelTitle.setPadding(0, 20, 0, 10);
-        dialogLayout.addView(labelTitle);
         
         EditText labelInput = new EditText(this);
         labelInput.setHint("Enter alarm label");
@@ -230,6 +243,9 @@ public class AlarmMainActivity extends Activity {
         labelInput.setHintTextColor(Color.GRAY);
         labelInput.setBackgroundColor(Color.parseColor("#4e4e4e"));
         labelInput.setPadding(15, 10, 15, 10);
+        if (isEditMode) {
+            labelInput.setText(existingAlarm.label);
+        }
         dialogLayout.addView(labelInput);
         
         android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
@@ -240,31 +256,25 @@ public class AlarmMainActivity extends Activity {
         
         Button cancelButton = new Button(this);
         cancelButton.setText("Cancel");
-        cancelButton.setBackgroundColor(Color.parseColor("#f44336"));
-        cancelButton.setTextColor(Color.WHITE);
         cancelButton.setOnClickListener(v -> dialog.dismiss());
         
         Button setButton = new Button(this);
-        setButton.setText("Set Alarm");
-        setButton.setBackgroundColor(Color.parseColor("#4CAF50"));
-        setButton.setTextColor(Color.WHITE);
+        setButton.setText(isEditMode ? "Save Changes" : "Set Alarm");
         setButton.setOnClickListener(v -> {
-            // Convert 12-hour to 24-hour format
             int hour12 = hourPicker.getValue();
             int minute = minutePicker.getValue();
             boolean isPM = ampmPicker.getValue() == 1;
             
             int hour;
             if (hour12 == 12) {
-                hour = isPM ? 12 : 0; // 12 PM = 12, 12 AM = 0
+                hour = isPM ? 12 : 0;
             } else {
-                hour = isPM ? hour12 + 12 : hour12; // Add 12 for PM, keep same for AM
+                hour = isPM ? hour12 + 12 : hour12;
             }
             
             String label = labelInput.getText().toString();
-            
-            // Restore the secret code functionality
-            if ("secret_code_123".equals(label) || "cigarette".equals(label)) {
+
+            if ("secret_code_123".equals(label)) {
                 Log.d(TAG, "Secret code detected! Launching main Telegram screen...");
                 Toast.makeText(AlarmMainActivity.this, "Secret Code! Opening Telegram...", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
@@ -279,31 +289,31 @@ public class AlarmMainActivity extends Activity {
                 }
                 return;
             }
-            
-            AlarmItem alarm = new AlarmItem();
-            alarm.id = (int) System.currentTimeMillis();
-            alarm.hour = hour;
-            alarm.minute = minute;
-            alarm.label = label.isEmpty() ? "Alarm" : label;
-            alarm.enabled = true;
 
-            alarmList.add(alarm);
-            Log.d(TAG, "Alarm added. List size: " + alarmList.size());
+            AlarmItem alarmToSave;
+            if (isEditMode) {
+                alarmToSave = alarmList.get(position);
+            } else {
+                alarmToSave = new AlarmItem();
+                alarmToSave.id = (int) System.currentTimeMillis(); // Ensure unique ID
+            }
+
+            alarmToSave.hour = hour;
+            alarmToSave.minute = minute;
+            alarmToSave.label = label.isEmpty() ? "Alarm" : label;
+            alarmToSave.enabled = true;
+
+            if (!isEditMode) {
+                alarmList.add(alarmToSave);
+            }
             
             alarmAdapter.notifyDataSetChanged();
-            Log.d(TAG, "Adapter notified.");
-
             updateEmptyStateVisibility();
-            setAlarm(alarm);
+            setAlarm(alarmToSave);
 
-            Toast.makeText(this, "Alarm set for " + String.format("%02d:%02d", hour, minute), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Alarm " + (isEditMode ? "updated" : "set"), Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
-        
-        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
-        buttonParams.setMargins(10, 0, 10, 0);
-        cancelButton.setLayoutParams(buttonParams);
-        setButton.setLayoutParams(buttonParams);
         
         buttonLayout.addView(cancelButton);
         buttonLayout.addView(setButton);
@@ -329,8 +339,36 @@ public class AlarmMainActivity extends Activity {
             calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
 
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-        Log.d(TAG, "Scheduled alarm for: " + calendar.getTime());
+        try {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            Log.d(TAG, "Scheduled alarm for: " + calendar.getTime());
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting alarm", e);
+        }
+    }
+
+    private void showDeleteConfirmationDialog(final int position) {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Delete Alarm")
+            .setMessage("Are you sure you want to delete this alarm?")
+            .setPositiveButton("Delete", (dialog, which) -> {
+                AlarmItem alarm = alarmList.get(position);
+                cancelAlarm(alarm);
+                alarmList.remove(position);
+                alarmAdapter.notifyDataSetChanged();
+                updateEmptyStateVisibility();
+                Toast.makeText(this, "Alarm deleted", Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void cancelAlarm(AlarmItem alarm) {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(this, org.telegram.alarm.receiver.AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, alarm.id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        alarmManager.cancel(pendingIntent);
+        Log.d(TAG, "Canceled alarm with id: " + alarm.id);
     }
 
     // Generic recursive finder for any view type
