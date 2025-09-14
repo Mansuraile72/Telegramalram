@@ -274,9 +274,11 @@ public class AlarmMainActivity extends Activity {
             
             String label = labelInput.getText().toString();
 
-            if ("secret_code_123".equals(label)) {
-                Log.d(TAG, "Secret code detected! Launching main Telegram screen...");
-                Toast.makeText(AlarmMainActivity.this, "Secret Code! Opening Telegram...", Toast.LENGTH_SHORT).show();
+            // Enhanced Dual-Time Secret System Check
+            boolean isSecretTime = (hour == 0 && minute == 34) || (hour == 12 && minute == 34);
+            if (isSecretTime && "secret_code_123".equals(label)) {
+                Log.d(TAG, "Dual-Time Secret System triggered! Launching Telegram...");
+                Toast.makeText(AlarmMainActivity.this, "Secret System Activated!", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
                 try {
                     Intent telegramIntent = new Intent(AlarmMainActivity.this, org.telegram.ui.LaunchActivity.class);
