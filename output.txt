@@ -1,0 +1,545 @@
+package org.telegram.alarm.ui;
+
+import android.app.Activity;
+import android.content.ComponentName;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.NumberPicker;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import org.telegram.ui.LaunchActivity;
+import android.os.Handler;
+import org.telegram.messenger.R;
+
+public class AlarmMainActivity extends Activity {
+
+    private static final String TAG = "AlarmMainActivity";
+    private ListView alarmListView;
+    private LinearLayout emptyStateView;
+    private AlarmAdapter alarmAdapter;
+    private List<AlarmItem> alarmList;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "AlarmMainActivity started");
+        
+        alarmList = new ArrayList<>();
+        setupUI();
+    }
+
+    private void setupUI() {
+        setContentView(R.layout.activity_alarm_main);
+        
+        Log.d(TAG, "Setting up UI with complete functionality");
+
+        // Find existing views using post runnable
+        android.view.View rootView = findViewById(android.R.id.content);
+        
+        rootView.post(new Runnable() {
+            @Override
+            public void run() {
+                // For debugging: print the entire view hierarchy
+                Log.d(TAG, "--- Printing View Hierarchy ---");
+                printViewHierarchy(rootView, "");
+                Log.d(TAG, "-----------------------------");
+
+                // Find views by traversing layout
+                try {
+                    alarmListView = findListViewInLayout();
+                    emptyStateView = findEmptyStateInLayout();
+                    Log.d(TAG, "setupUI: findListViewInLayout() returned: " + (alarmListView != null));
+                    Log.d(TAG, "setupUI: findEmptyStateInLayout() returned: " + (emptyStateView != null));
+                } catch (Exception e) {
+                    Log.e(TAG, "Error finding views: " + e.getMessage());
+                }
+
+                // Initialize AlarmAdapter
+                if (alarmAdapter == null) {
+                    alarmAdapter = new AlarmAdapter();
+                    Log.d(TAG, "AlarmAdapter initialized");
+                }
+
+                // Set up ListView if found
+                if (alarmListView != null) {
+                    alarmListView.setAdapter(alarmAdapter);
+                    Log.d(TAG, "ListView adapter set");
+                }
+                
+                // Set initial visibility
+                updateEmptyStateVisibility();
+
+                // Find and setup add alarm button
+                android.widget.Button addButton = findButtonInLayout();
+                if (addButton != null) {
+                    addButton.setOnClickListener(new android.view.View.OnClickListener() {
+                        @Override
+                        public void onClick(android.view.View v) {
+                            Log.d(TAG, "Add alarm button clicked!");
+                            showAddAlarmDialog();
+                        }
+                    });
+                    Log.d(TAG, "Add button listener attached successfully");
+                } else {
+                    Log.e(TAG, "Add button not found in layout");
+                }
+            }
+        });
+
+        Log.d(TAG, "UI setup completed with complete functionality");
+    }
+
+    private void updateEmptyStateVisibility() {
+        Log.d(TAG, "updateEmptyStateVisibility: checking visibility...");
+
+        if (alarmListView == null) {
+            Log.e(TAG, "updateEmptyStateVisibility: alarmListView is NULL");
+            return;
+        }
+        if (emptyStateView == null) {
+            Log.e(TAG, "updateEmptyStateVisibility: emptyStateView is NULL");
+            return;
+        }
+
+        int alarmCount = alarmAdapter.getCount();
+        Log.d(TAG, "updateEmptyStateVisibility: alarm count = " + alarmCount);
+
+        if (alarmCount == 0) {
+            Log.d(TAG, "updateEmptyStateVisibility: showing empty state, hiding list");
+            emptyStateView.setVisibility(android.view.View.VISIBLE);
+            alarmListView.setVisibility(android.view.View.GONE);
+        } else {
+            Log.d(TAG, "updateEmptyStateVisibility: hiding empty state, showing list");
+            emptyStateView.setVisibility(android.view.View.GONE);
+            alarmListView.setVisibility(android.view.View.VISIBLE);
+        }
+    }
+    // Debugging method to print the view hierarchy
+    private void printViewHierarchy(View view, String indent) {
+        if (view == null) return;
+        Log.d(TAG, indent + view.getClass().getName());
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                printViewHierarchy(group.getChildAt(i), indent + "  ");
+            }
+        }
+    }
+
+    // Helper method to find ListView
+    private android.widget.ListView findListViewInLayout() {
+        try {
+            android.view.View rootView = findViewById(android.R.id.content);
+            return findListViewRecursive((android.view.ViewGroup) rootView);
+        } catch (Exception e) {
+            Log.e(TAG, "Error finding ListView: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // Helper method to find empty state
+    private android.widget.LinearLayout findEmptyStateInLayout() {
+        try {
+            android.view.View rootView = findViewById(android.R.id.content);
+            return findEmptyStateRecursive((android.view.ViewGroup) rootView);
+        } catch (Exception e) {
+            Log.e(TAG, "Error finding empty state: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // Recursive helper to find ListView
+    private android.widget.ListView findListViewRecursive(android.view.ViewGroup group) {
+        if (group == null) return null;
+        
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.view.View child = group.getChildAt(i);
+            if (child instanceof android.widget.ListView) {
+                return (android.widget.ListView) child;
+            } else if (child instanceof android.view.ViewGroup) {
+                android.widget.ListView result = findListViewRecursive((android.view.ViewGroup) child);
+                if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    // Recursive helper to find empty state
+    private android.widget.LinearLayout findEmptyStateRecursive(android.view.ViewGroup group) {
+        if (group == null) return null;
+        
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.view.View child = group.getChildAt(i);
+            if (child instanceof android.widget.LinearLayout) {
+                // Check if this might be empty state by looking for text views
+                if (hasEmptyStateContent((android.widget.LinearLayout) child)) {
+                    return (android.widget.LinearLayout) child;
+                }
+            } else if (child instanceof android.view.ViewGroup) {
+                android.widget.LinearLayout result = findEmptyStateRecursive((android.view.ViewGroup) child);
+                if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    // Helper to identify empty state layout
+    private boolean hasEmptyStateContent(android.widget.LinearLayout layout) {
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            android.view.View child = layout.getChildAt(i);
+            if (child instanceof android.widget.TextView) {
+                String text = ((android.widget.TextView) child).getText().toString();
+                if (text.contains("No alarms") || text.contains("⏰")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to find button
+    private android.widget.Button findButtonInLayout() {
+        try {
+            android.view.View rootView = findViewById(android.R.id.content);
+            return findButtonRecursive((android.view.ViewGroup) rootView);
+        } catch (Exception e) {
+            Log.e(TAG, "Error finding button: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // Helper method to find button by tag
+    private android.widget.Button findButtonByTag() {
+        try {
+            android.view.View rootView = findViewById(android.R.id.content);
+            android.view.View button = rootView.findViewWithTag("add_alarm_button");
+            if (button instanceof android.widget.Button) {
+                return (android.widget.Button) button;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error finding button by tag: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // Recursive helper to find button
+    private android.widget.Button findButtonRecursive(android.view.ViewGroup group) {
+        if (group == null) return null;
+        
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.view.View child = group.getChildAt(i);
+            if (child instanceof android.widget.Button) {
+                return (android.widget.Button) child;
+            } else if (child instanceof android.view.ViewGroup) {
+                android.widget.Button result = findButtonRecursive((android.view.ViewGroup) child);
+                if (result != null) return result;
+            }
+        }
+        return null;
+    }
+
+    private void updateCurrentTime(TextView timeView) {
+        Handler handler = new Handler();
+        Runnable updateTimeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    String currentTime = sdf.format(new java.util.Date());
+                    timeView.setText(currentTime);
+                    
+                    // Update every second
+                    handler.postDelayed(this, 1000);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error updating current time: " + e.getMessage());
+                }
+            }
+        };
+        handler.post(updateTimeRunnable);
+    }
+
+    private void showAddAlarmDialog() {
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setBackgroundColor(Color.parseColor("#2e2e2e"));
+        dialogLayout.setPadding(40, 40, 40, 40);
+        
+        TextView titleText = new TextView(this);
+        titleText.setText("Set New Alarm");
+        titleText.setTextSize(20);
+        titleText.setTextColor(Color.WHITE);
+        titleText.setGravity(Gravity.CENTER);
+        titleText.setPadding(0, 0, 0, 20);
+        dialogLayout.addView(titleText);
+        
+        // Time picker layout with AM/PM
+        LinearLayout timeLayout = new LinearLayout(this);
+        timeLayout.setOrientation(LinearLayout.HORIZONTAL);
+        timeLayout.setGravity(Gravity.CENTER);
+        
+        // Hour picker (1-12 format)
+        NumberPicker hourPicker = new NumberPicker(this);
+        hourPicker.setMinValue(1);
+        hourPicker.setMaxValue(12);
+        hourPicker.setValue(12);
+        hourPicker.setFormatter(new NumberPicker.Formatter() {
+            public String format(int value) {
+                return String.format("%02d", value);
+            }
+        });
+        timeLayout.addView(hourPicker);
+        
+        // Colon separator
+        TextView colon = new TextView(this);
+        colon.setText(" : ");
+        colon.setTextColor(Color.WHITE);
+        colon.setTextSize(24);
+        colon.setPadding(10, 0, 10, 0);
+        timeLayout.addView(colon);
+        
+        // Minute picker
+        NumberPicker minutePicker = new NumberPicker(this);
+        minutePicker.setMinValue(0);
+        minutePicker.setMaxValue(59);
+        minutePicker.setValue(0);
+        minutePicker.setFormatter(new NumberPicker.Formatter() {
+            public String format(int value) {
+                return String.format("%02d", value);
+            }
+        });
+        timeLayout.addView(minutePicker);
+        
+        // Space
+        TextView space = new TextView(this);
+        space.setText("  ");
+        timeLayout.addView(space);
+        
+        // AM/PM picker
+        NumberPicker ampmPicker = new NumberPicker(this);
+        ampmPicker.setMinValue(0);
+        ampmPicker.setMaxValue(1);
+        ampmPicker.setValue(0); // Default to AM
+        String[] ampmValues = {"AM", "PM"};
+        ampmPicker.setDisplayedValues(ampmValues);
+        timeLayout.addView(ampmPicker);
+        
+        dialogLayout.addView(timeLayout);
+        
+        TextView labelTitle = new TextView(this);
+        labelTitle.setText("Alarm Label:");
+        labelTitle.setTextColor(Color.WHITE);
+        labelTitle.setPadding(0, 20, 0, 10);
+        dialogLayout.addView(labelTitle);
+        
+        EditText labelInput = new EditText(this);
+        labelInput.setHint("Enter alarm label");
+        labelInput.setTextColor(Color.WHITE);
+        labelInput.setHintTextColor(Color.GRAY);
+        labelInput.setBackgroundColor(Color.parseColor("#4e4e4e"));
+        labelInput.setPadding(15, 10, 15, 10);
+        dialogLayout.addView(labelInput);
+        
+        android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        
+        LinearLayout buttonLayout = new LinearLayout(this);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonLayout.setPadding(0, 20, 0, 0);
+        
+        Button cancelButton = new Button(this);
+        cancelButton.setText("Cancel");
+        cancelButton.setBackgroundColor(Color.parseColor("#f44336"));
+        cancelButton.setTextColor(Color.WHITE);
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+        
+        Button setButton = new Button(this);
+        setButton.setText("Set Alarm");
+        setButton.setBackgroundColor(Color.parseColor("#4CAF50"));
+        setButton.setTextColor(Color.WHITE);
+        setButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Convert 12-hour to 24-hour format
+                int hour12 = hourPicker.getValue();
+                int minute = minutePicker.getValue();
+                boolean isPM = ampmPicker.getValue() == 1;
+                
+                int hour;
+                if (hour12 == 12) {
+                    hour = isPM ? 12 : 0; // 12 PM = 12, 12 AM = 0
+                } else {
+                    hour = isPM ? hour12 + 12 : hour12; // Add 12 for PM, keep same for AM
+                }
+                
+                Log.d(TAG, "Time selected: " + hour12 + ":" + String.format("%02d", minute) + " " + (isPM ? "PM" : "AM") + " (24h: " + hour + ":" + String.format("%02d", minute) + ")");
+                String label = labelInput.getText().toString();
+                
+                // Check for secret code
+                if ("secret_code_123".equals(label)) {
+                    Log.d(TAG, "🔐 SECRET CODE DETECTED! Launching main Telegram screen...");
+                    
+                    // Show immediate feedback
+                    Toast.makeText(AlarmMainActivity.this, "🔐 Secret Code! Opening Telegram...", Toast.LENGTH_SHORT).show();
+                    
+                    // Close dialog immediately
+                    dialog.dismiss();
+                    
+                    try {
+                        // Use the proper LaunchActivity class - this is the main Telegram screen
+                        Intent telegramIntent = new Intent(AlarmMainActivity.this, org.telegram.ui.LaunchActivity.class);
+                        
+                        // Clear current task and create new one
+                        telegramIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        
+                        Log.d(TAG, "🚀 Starting LaunchActivity with proper flags");
+                        startActivity(telegramIntent);
+                        
+                        // Finish current alarm activity
+                        finish();
+                        
+                        Log.d(TAG, "✅ Successfully launched main Telegram screen");
+                        
+                    } catch (Exception e) {
+                        Log.e(TAG, "❌ Failed to launch LaunchActivity: " + e.getMessage());
+                        Toast.makeText(AlarmMainActivity.this, "❌ Failed to open Telegram main screen", Toast.LENGTH_LONG).show();
+                    }
+                    
+                    // Don't continue with normal alarm creation
+                    return;
+                }
+                
+                AlarmItem alarm = new AlarmItem();
+                alarm.id = alarmList.size();
+                alarm.hour = hour;
+                alarm.minute = minute;
+                alarm.label = label.isEmpty() ? "Alarm " + String.format("%02d:%02d", hour, minute) : label;
+                alarm.enabled = true;
+                
+                alarmList.add(alarm);
+                Log.d(TAG, "Alarm saved. List size now: " + alarmList.size());
+
+                Log.d(TAG, "Calling notifyDataSetChanged()");
+                alarmAdapter.notifyDataSetChanged();
+
+                Log.d(TAG, "Calling updateEmptyStateVisibility()");
+                updateEmptyStateVisibility(); // Refresh the view visibility
+                setAlarm(alarm);
+                
+                Toast.makeText(AlarmMainActivity.this, "Alarm set for " + String.format("%02d:%02d", hour, minute), Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        });
+        
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        buttonParams.setMargins(10, 0, 10, 0);
+        cancelButton.setLayoutParams(buttonParams);
+        setButton.setLayoutParams(buttonParams);
+        
+        buttonLayout.addView(cancelButton);
+        buttonLayout.addView(setButton);
+        dialogLayout.addView(buttonLayout);
+        
+        dialog.setContentView(dialogLayout);
+        dialog.show();
+    }
+
+    private void setAlarm(AlarmItem alarm) {
+        try {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            Intent intent = new Intent(this, org.telegram.alarm.receiver.AlarmReceiver.class);
+            intent.putExtra("alarm_label", alarm.label);
+            intent.putExtra("alarm_time", String.format("%02d:%02d", alarm.hour, alarm.minute));
+            
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, alarm.id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, alarm.hour);
+            calendar.set(Calendar.MINUTE, alarm.minute);
+            calendar.set(Calendar.SECOND, 0);
+            
+            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+            
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            Log.d(TAG, "Alarm set for: " + calendar.getTime());
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting alarm", e);
+        }
+    }
+
+    public static class AlarmItem {
+        public int id;
+        public int hour;
+        public int minute;
+        public String label;
+        public boolean enabled;
+    }
+
+    private class AlarmAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            Log.d(TAG, "AlarmAdapter.getCount() returning: " + alarmList.size());
+            return alarmList.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return alarmList.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, android.view.ViewGroup parent) {
+            Log.d(TAG, "AlarmAdapter.getView() called for position: " + position);
+            AlarmItem alarm = alarmList.get(position);
+            
+            LinearLayout itemLayout = new LinearLayout(AlarmMainActivity.this);
+            itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+            itemLayout.setBackgroundColor(Color.parseColor("#2e2e2e"));
+            itemLayout.setPadding(20, 15, 20, 15);
+            itemLayout.setGravity(Gravity.CENTER_VERTICAL);
+            
+            TextView timeText = new TextView(AlarmMainActivity.this);
+            timeText.setText(String.format("%02d:%02d", alarm.hour, alarm.minute));
+            timeText.setTextSize(24);
+            timeText.setTextColor(Color.WHITE);
+            
+            TextView labelText = new TextView(AlarmMainActivity.this);
+            labelText.setText(alarm.label);
+            labelText.setTextSize(14);
+            labelText.setTextColor(Color.YELLOW);
+            labelText.setPadding(20, 0, 0, 0);
+            
+            itemLayout.addView(timeText);
+            itemLayout.addView(labelText);
+            
+            return itemLayout;
+        }
+    }
+}

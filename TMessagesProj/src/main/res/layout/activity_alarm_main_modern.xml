@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background=" @color/modern_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background=" @drawable/modern_card_bg"
+            android:elevation="4dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⏰"
+                android:textSize="48sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Alarm Clock"
+                android:textColor=" @color/on_primary_container"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:alpha="0.8"
+                android:text="Set your perfect wake-up time"
+                android:textColor=" @color/on_primary_container"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <!-- Add Alarm Button -->
+        <LinearLayout
+            android:id=" @+id/add_alarm_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background=" @drawable/modern_surface_card_bg"
+            android:clickable="true"
+            android:elevation="2dp"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <View
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="16dp"
+                android:background=" @drawable/circle_primary" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Add New Alarm"
+                android:textColor=" @color/on_surface"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="+"
+                android:textColor=" @color/primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Current Time Display -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background=" @drawable/modern_surface_card_bg"
+            android:elevation="2dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id=" @+id/current_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12:34"
+                android:textColor=" @color/primary"
+                android:textSize="48sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Current Time"
+                android:textColor=" @color/on_surface_variant"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <!-- Alarms List Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background=" @drawable/modern_surface_card_bg"
+            android:elevation="2dp"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Your Alarms"
+                android:textColor=" @color/on_surface"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <!-- Alarm Items Container -->
+            <LinearLayout
+                android:id=" @+id/alarms_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+            </LinearLayout>
+
+            <!-- Empty State -->
+            <LinearLayout
+                android:id=" @+id/empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😴"
+                    android:textSize="64sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="No alarms set"
+                    android:textColor=" @color/on_surface"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Tap the card above to add your first alarm"
+                    android:textAlignment="center"
+                    android:textColor=" @color/on_surface_variant"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
+    </LinearLayout>
+
+</ScrollView>

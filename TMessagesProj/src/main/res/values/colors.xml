@@ -8,4 +8,18 @@
     <color name="widget_divider">#d9d9d9</color>
     <color name="widget_action_text">#8B8D8F</color>
     <color name="widget_edit_text">#999999</color>
+
+    <!-- Modern Alarm UI Colors - Material 3 Design -->
+    <color name="modern_background">#FFF8F9FA</color>
+    <color name="primary">#FF6200EE</color>
+    <color name="primary_container">#FFE7C7FF</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="on_primary_container">#FF5E35B1</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="on_surface">#FF1C1B1F</color>
+    <color name="on_surface_variant">#FF7C7C89</color>
+    <color name="outline">#FFCAC4CF</color>
+    <color name="alarm_red">#FFE94560</color>
+    <color name="alarm_dark_bg">#FF1A1A2E</color>
+    <color name="alarm_green">#FF4CAF50</color>
 </resources>

@@ -8,88 +8,77 @@
 
 package org.telegram.messenger;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Build;
-
-import com.android.billingclient.api.ProductDetails;
-
-import java.util.Objects;
 
 public class BuildVars {
 
-    public static boolean DEBUG_VERSION = BuildConfig.DEBUG_VERSION;
-    public static boolean LOGS_ENABLED = BuildConfig.DEBUG_VERSION;
-    public static boolean DEBUG_PRIVATE_VERSION = BuildConfig.DEBUG_PRIVATE_VERSION;
+    // --- आपकी व्यक्तिगत Keys ---
+    public static int API_ID = 27041199;
+    public static String API_HASH = "7f65bd72b0b483a9eddcfbc487b72420";
+
+    // --- नए एरर्स को ठीक करने के लिए (APP_ID और APP_HASH) ---
+    public static int APP_ID = 27041199;
+    public static String APP_HASH = "7f65bd72b0b483a9eddcfbc487b72420";
+
+    // --- बिल्ड के लिए ज़रूरी अन्य वैरिएबल ---
+    public static boolean DEBUG_VERSION = true;
+    public static boolean LOGS_ENABLED = true;
+    public static boolean DEBUG_PRIVATE_VERSION = true;
     public static boolean USE_CLOUD_STRINGS = true;
     public static boolean CHECK_UPDATES = true;
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
-    public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
+    public static String BUILD_VERSION_STRING = "10.8.2"; // सैंपल वर्ज़न
+    public static boolean IS_BILLING_UNAVAILABLE = true;
 
-    public static int APP_ID = 4;
-    public static String APP_HASH = "014b35b6184100b085b0d0572f9b5103";
+    // --- इन वैरिएबल्स को आप खाली छोड़ सकते हैं ---
+    public static String HOCKEY_APP_HASH = "";
+    public static String HOCKEY_APP_HASH_DEBUG = "";
+    public static String BING_SEARCH_KEY = "";
+    public static String FOURSQUARE_API_KEY = "";
+    public static String FOURSQUARE_API_ID = "";
+    public static String FOURSQUARE_API_SECRET = "";
+    public static String GCM_SENDER_ID = "762359664522";
+    public static String GOOGLE_MAPS_API_KEY = "";
+    public static String GOOGLE_API_KEY = "";
+    public static String HOCKEY_APP_ID = "";
+    public static String APPCENTER_HASH = "";
+    public static String APPCENTER_HASH_DEBUG = "";
+    public static String SMS_HASH = "";
+    public static String TWITTER_TAG = "#telegram";
+    public static String TME_URL = "https://t.me/";
+    public static String GOOGLE_AUTH_CLIENT_ID = "some_default_client_id";
 
-    // SafetyNet key for Google Identity SDK, set it to empty to disable
-    public static String SAFETYNET_KEY = "AIzaSyDqt8P-7F7CPCseMkOiVRgb1LY8RN1bvH8";
-    public static String PLAYSTORE_APP_URL = "https://play.google.com/store/apps/details?id=org.telegram.messenger";
+    // --- इस बार के एरर को ठीक करने के लिए जोड़ी गई लाइनें ---
     public static String HUAWEI_STORE_URL = "https://appgallery.huawei.com/app/C101184875";
-    public static String GOOGLE_AUTH_CLIENT_ID = "760348033671-81kmi3pi84p11ub8hp9a1funsv0rn2p9.apps.googleusercontent.com";
+    public static String PLAYSTORE_APP_URL = "https://play.google.com/store/apps/details?id=org.telegram.messenger";
+    public static String SAFETYNET_KEY = ""; // इसे खाली छोड़ सकते हैं
 
-    public static String HUAWEI_APP_ID = "101184875";
+    // --- पुराने वैरिएबल (अब PLAYSTORE_APP_URL द्वारा प्रतिस्थापित) ---
+    public static String PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=org.telegram.messenger";
+    public static String PLAY_STORE_URL_BETA = "https://play.google.com/store/apps/details?id=org.telegram.messenger.beta";
+    public static String SUPPORT_URL = "https://telegram.org/support";
 
-    // You can use this flag to disable Google Play Billing (If you're making fork and want it to be in Google Play)
-    public static boolean IS_BILLING_UNAVAILABLE = false;
 
-    static {
-        if (ApplicationLoader.applicationContext != null) {
-            SharedPreferences sharedPreferences = ApplicationLoader.applicationContext.getSharedPreferences("systemConfig", Context.MODE_PRIVATE);
-            LOGS_ENABLED = DEBUG_VERSION || sharedPreferences.getBoolean("logsEnabled", DEBUG_VERSION);
-            if (LOGS_ENABLED) {
-                final Thread.UncaughtExceptionHandler pastHandler = Thread.getDefaultUncaughtExceptionHandler();
-                Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-                    FileLog.fatal(exception, false);
-                    if (pastHandler != null) {
-                        pastHandler.uncaughtException(thread, exception);
-                    }
-                });
-            }
-        }
+    // --- एरर को ठीक करने के लिए ज़रूरी मेथड्स ---
+    public static String getSmsHash() {
+        return "your_sms_hash"; // एक सैंपल वैल्यू
     }
 
     public static boolean useInvoiceBilling() {
-        return BillingController.billingClientEmpty || DEBUG_VERSION && false || ApplicationLoader.isStandaloneBuild() || isBetaApp() && false || isHuaweiStoreApp() || hasDirectCurrency();
-    }
-
-    private static boolean hasDirectCurrency() {
-        if (!BillingController.getInstance().isReady() || BillingController.PREMIUM_PRODUCT_DETAILS == null) {
-            return false;
-        }
-        for (ProductDetails.SubscriptionOfferDetails offerDetails : BillingController.PREMIUM_PRODUCT_DETAILS.getSubscriptionOfferDetails()) {
-            for (ProductDetails.PricingPhase phase : offerDetails.getPricingPhases().getPricingPhaseList()) {
-                for (String cur : MessagesController.getInstance(UserConfig.selectedAccount).directPaymentsCurrency) {
-                    if (Objects.equals(phase.getPriceCurrencyCode(), cur)) {
-                        return true;
-                    }
-                }
-            }
-        }
         return false;
     }
 
-    private static Boolean betaApp;
     public static boolean isBetaApp() {
-        if (betaApp == null) {
-            betaApp = ApplicationLoader.applicationContext != null && "org.telegram.messenger.beta".equals(ApplicationLoader.applicationContext.getPackageName());
-        }
-        return betaApp;
+        return false;
     }
-
 
     public static boolean isHuaweiStoreApp() {
-        return ApplicationLoader.isHuaweiStoreBuild();
+        return false;
     }
 
-    public static String getSmsHash() {
-        return ApplicationLoader.isStandaloneBuild() ? "w0lkcmTZkKh" : (DEBUG_VERSION ? "O2P2z+/jBpJ" : "oLeq9AcOZkT");
-    }
+    // --- प्रोजेक्ट के लिए अन्य ज़रूरी वैरिएबल ---
+    public static boolean isStandalone = false;
+    public static boolean isBeta = false;
+    public static boolean isInternal = false;
+    public static boolean isFoss = false;
 }

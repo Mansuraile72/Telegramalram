@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:background="#0F3460"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical">
+
+    <!-- Time and Label -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/alarm_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="08:00"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/alarm_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wake up"
+            android:textColor="#B0B0B0"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Toggle Switch -->
+    <Switch
+        android:id="@+id/alarm_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>
